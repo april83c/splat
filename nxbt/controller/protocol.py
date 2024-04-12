@@ -363,34 +363,50 @@ class ControllerProtocol():
 
         imu_data = bytearray(b'')
 
-        #mousex = mousex * 15
-        #mousey = mousey * 15
+        y_angle = 0
+        x_angle = 0
+        z_angle = 0
+        x_accel = 0
+        y_accel = 0
+        z_accel = 0
 
-        accel_x = 0#int(mousex)#15000 # #-651random.randrange(-32768, 32767) #
-        imu_data.extend(bytearray(accel_x.to_bytes(2,byteorder="little",signed=True)))
+        # y angle and accel
+        y_angle = mousey * -1 * 1.4 # 1.2 = YFollowing
+        y_angle_is_at_limit = False
+        if y_angle >= 3000:
+            y_angle_is_at_limit = True
+            y_angle = 3000
+        elif y_angle <= -1500:
+            y_angle_is_at_limit = True
+            y_angle = -1500
+        
+        if not y_angle_is_at_limit:
+            y_accel = mousey * 23 # 20 = Y sensitivity
+        
+        # z angle and accel
+        z_angle = 4096
+        z_accel = (mousex * 20) * -1 # 17 = X sensitivity
+        if z_accel >= 16000:
+            z_accel = -16000
+        elif z_accel <= -16000:
+            z_accel = 16000
 
-        accel_y = 0#int(mousey)#15000 #  #-3random.randrange(-32768, 32767) #
-        imu_data.extend(bytearray(accel_y.to_bytes(2,byteorder="little",signed=True)))
-
-        accel_z = 0 #15000 # 4105random.randrange(-32768, 32767) #
-        imu_data.extend(bytearray(accel_z.to_bytes(2,byteorder="little",signed=True)))
-
-        gyro_1 = int(self.mousey + mousey) #random.randrange(-32768, 32767) #  #-43
-        gyro_1 = max(min(gyro_1, 4000), 0) # max(min(my_value, max_value), min_value)
-        self.mousey = gyro_1
-        imu_data.extend(bytearray(gyro_1.to_bytes(2,byteorder="little",signed=True)))
-
-        gyro_2 = 4000 - gyro_1 #int(self.mousex + mousex) #33random.randrange(-32768, 32767) #
-        self.mousex = gyro_2
-        imu_data.extend(bytearray(gyro_2.to_bytes(2,byteorder="little",signed=True)))
-
-        gyro_3 = int(self.mousex + mousex) #random.randrange(-32768, 32767) # gyro_2
-        imu_data.extend(bytearray(gyro_3.to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(y_angle).to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(x_angle).to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(z_angle).to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(x_accel).to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(y_accel).to_bytes(2,byteorder="little",signed=True)))
+        imu_data.extend(bytearray(int(z_accel).to_bytes(2,byteorder="little",signed=True)))
 
         #imu_data_good = bytes(imu_data)
         imu_data_good = []
 
-        print(str(gyro_1) + ' ' + str(gyro_2) + ' ' + str(gyro_3))
+        print(str(y_angle)
+        + ' ' + str(x_angle)
+        + ' ' + str(z_angle)
+        + ' ' + str(x_accel)
+        + ' ' + str(y_accel)
+        + ' ' + str(z_accel))
 
         for byte in imu_data:
             imu_data_good.append(byte)
@@ -399,6 +415,7 @@ class ControllerProtocol():
         #print(str(accel_x) + ' ' + str(accel_y) + ' ' + str(accel_z) + ' ' + str(gyro_1) + ' ' + str(gyro_2) + ' ' + str(gyro_3) + ' ')
 
         imu_data_notHecked = [] + imu_data_good
+        imu_data_blank = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         imu_data_good = imu_data_good + imu_data_good + imu_data_good #self.previousMotion + self.previousPreviousMotion
         #self.previousPreviousMotion = self.previousMotion
         #self.previousMotion = imu_data_notHecked

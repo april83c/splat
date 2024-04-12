@@ -1,0 +1,2 @@
+- Use Python 3.9
+- bluez-deprecated-5.73-3.fc39.x86_64 for hciconfig (try sudo dnf provides hciconfig)
