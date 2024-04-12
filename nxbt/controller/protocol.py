@@ -73,6 +73,12 @@ class ControllerProtocol():
         self.report_size = report_size
         self.set_empty_report()
 
+        # gyro stuff !!!!!
+        self.mousex = 0
+        self.mousey = 2000
+        self.previousMotion = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.previousPreviousMotion = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
         # Input report mode
         self.mode = None
 
@@ -349,16 +355,76 @@ class ControllerProtocol():
         # Subcommand reply
         self.report[15] = 0x40
 
-    def set_imu_data(self):
+    def real_imu_data(self, mousex, mousey):
+        #random.seed()
 
         if not self.imu_enabled:
             return
 
-        imu_data = [0x75, 0xFD, 0xFD, 0xFF, 0x09, 0x10, 0x21, 0x00, 0xD5, 0xFF,
+        imu_data = bytearray(b'')
+
+        #mousex = mousex * 15
+        #mousey = mousey * 15
+
+        accel_x = 0#int(mousex)#15000 # #-651random.randrange(-32768, 32767) #
+        imu_data.extend(bytearray(accel_x.to_bytes(2,byteorder="little",signed=True)))
+
+        accel_y = 0#int(mousey)#15000 #  #-3random.randrange(-32768, 32767) #
+        imu_data.extend(bytearray(accel_y.to_bytes(2,byteorder="little",signed=True)))
+
+        accel_z = 0 #15000 # 4105random.randrange(-32768, 32767) #
+        imu_data.extend(bytearray(accel_z.to_bytes(2,byteorder="little",signed=True)))
+
+        gyro_1 = int(self.mousey + mousey) #random.randrange(-32768, 32767) #  #-43
+        gyro_1 = max(min(gyro_1, 4000), 0) # max(min(my_value, max_value), min_value)
+        self.mousey = gyro_1
+        imu_data.extend(bytearray(gyro_1.to_bytes(2,byteorder="little",signed=True)))
+
+        gyro_2 = 4000 - gyro_1 #int(self.mousex + mousex) #33random.randrange(-32768, 32767) #
+        self.mousex = gyro_2
+        imu_data.extend(bytearray(gyro_2.to_bytes(2,byteorder="little",signed=True)))
+
+        gyro_3 = int(self.mousex + mousex) #random.randrange(-32768, 32767) # gyro_2
+        imu_data.extend(bytearray(gyro_3.to_bytes(2,byteorder="little",signed=True)))
+
+        #imu_data_good = bytes(imu_data)
+        imu_data_good = []
+
+        print(str(gyro_1) + ' ' + str(gyro_2) + ' ' + str(gyro_3))
+
+        for byte in imu_data:
+            imu_data_good.append(byte)
+
+        #print(imu_data_good)
+        #print(str(accel_x) + ' ' + str(accel_y) + ' ' + str(accel_z) + ' ' + str(gyro_1) + ' ' + str(gyro_2) + ' ' + str(gyro_3) + ' ')
+
+        imu_data_notHecked = [] + imu_data_good
+        imu_data_good = imu_data_good + imu_data_good + imu_data_good #self.previousMotion + self.previousPreviousMotion
+        #self.previousPreviousMotion = self.previousMotion
+        #self.previousMotion = imu_data_notHecked
+
+        #print(imu_data_good)
+        #print(len(imu_data_good))
+        #print(self.imu_enabled)
+
+        imu_data_sample = [0x75, 0xFD, 0xFD, 0xFF, 0x09, 0x10, 0x21, 0x00, 0xD5, 0xFF,
                     0xE0, 0xFF, 0x72, 0xFD, 0xF9, 0xFF, 0x0A, 0x10, 0x22, 0x00,
                     0xD5, 0xFF, 0xE0, 0xFF, 0x76, 0xFD, 0xFC, 0xFF, 0x09, 0x10,
                     0x23, 0x00, 0xD5, 0xFF, 0xE0, 0xFF]
-        replace_subarray(self.report, 14, 49, replace_arr=imu_data)
+
+        replace_subarray(self.report, 14, 49, replace_arr=imu_data_good)
+
+    def set_imu_data(self):
+        if not self.imu_enabled:
+            return
+
+        self.real_imu_data(0, 0)
+
+        #imu_data = [0x75, 0xFD, 0xFD, 0xFF, 0x09, 0x10, 0x21, 0x00, 0xD5, 0xFF,
+        #            0xE0, 0xFF, 0x72, 0xFD, 0xF9, 0xFF, 0x0A, 0x10, 0x22, 0x00,
+        #            0xD5, 0xFF, 0xE0, 0xFF, 0x76, 0xFD, 0xFC, 0xFF, 0x09, 0x10,
+        #            0x23, 0x00, 0xD5, 0xFF, 0xE0, 0xFF]
+        #replace_subarray(self.report, 14, 49, replace_arr=imu_data)
 
     def spi_read(self, message):
 

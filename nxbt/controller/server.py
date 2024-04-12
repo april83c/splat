@@ -109,14 +109,14 @@ class ControllerServer():
 
         except KeyboardInterrupt:
             pass
-        except Exception:
-            try:
-                self.state["state"] = "crashed"
-                self.state["errors"] = traceback.format_exc()
-                return self.state
-            except Exception as e:
-                self.logger.debug("Error during graceful shutdown:")
-                self.logger.debug(traceback.format_exc())
+        #except Exception: #TODO: uncomment this
+        #    try:
+        #        self.state["state"] = "crashed"
+        #        self.state["errors"] = traceback.format_exc()
+        #        return self.state
+        #    except Exception as e:
+        #        self.logger.debug("Error during graceful shutdown:")
+        #        self.logger.debug(traceback.format_exc())
 
     def mainloop(self, itr, ctrl):
 

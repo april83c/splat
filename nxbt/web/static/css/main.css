@@ -373,6 +373,12 @@ Controller Config Stying
     padding-top: 8% !important;
 }
 
+/** Rebinding styling **/
+
+#keyboard-map td {
+
+}
+
 /** Pro Controller Control Indicator Positioning **/
 #pc_ls {
     left: 19.25%; /* LM: 15.5, RM: 23*/

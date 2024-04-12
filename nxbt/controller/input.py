@@ -24,6 +24,10 @@ DIRECT_INPUT_IDLE_PACKET = {
         "RS_RIGHT": False,
         "RS_DOWN": False
     },
+    "MOUSE": {
+        "X_VALUE": 0,
+        "Y_VALUE": 0
+    },
     # Dpad
     "DPAD_UP": False,
     "DPAD_LEFT": False,
@@ -300,6 +304,10 @@ class InputParser():
         self.protocol.set_button_inputs(upper_byte, shared_byte, lower_byte)
         self.protocol.set_left_stick_inputs(stick_left)
         self.protocol.set_right_stick_inputs(stick_right)
+
+        self.protocol.real_imu_data(controller_input["MOUSE"]["X_VALUE"], controller_input["MOUSE"]["Y_VALUE"])
+        controller_input["MOUSE"]["X_VALUE"] = 0
+        controller_input["MOUSE"]["Y_VALUE"] = 0
 
         return controller_input
 

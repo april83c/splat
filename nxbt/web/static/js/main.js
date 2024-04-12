@@ -42,7 +42,74 @@ const ControllerType = {
     JOYCON_R: "joycon_r"
 }
 
-const KEYMAP = {
+const CODEMAP = {
+  8: "Backspace",
+  9: "Tab",
+  13: "Enter",
+  16: "ShiftLeft",
+  17: "ControlLeft",
+  20: "CapsLock",
+  27: "Escape",
+  32: "Space",
+  37: "ArrowLeft",
+  38: "ArrowUp",
+  39: "ArrowRight",
+  40: "ArrowDown",
+  48: "Digit0",
+  49: "Digit1",
+  50: "Digit2",
+  51: "Digit3",
+  52: "Digit4",
+  53: "Digit5",
+  54: "Digit6",
+  55: "Digit7",
+  56: "Digit8",
+  57: "Digit9",
+  65: "KeyA",
+  66: "KeyB",
+  67: "KeyC",
+  68: "KeyD",
+  69: "KeyE",
+  70: "KeyF",
+  71: "KeyG",
+  72: "KeyH",
+  73: "KeyI",
+  74: "KeyJ",
+  75: "KeyK",
+  76: "KeyL",
+  77: "KeyM",
+  78: "KeyN",
+  79: "KeyO",
+  80: "KeyP",
+  81: "KeyQ",
+  82: "KeyR",
+  83: "KeyS",
+  84: "KeyT",
+  85: "KeyU",
+  86: "KeyV",
+  87: "KeyW",
+  88: "KeyX",
+  89: "KeyY",
+  90: "KeyZ",
+  117: "F6",
+  186: "Semicolon",
+  187: "Equal",
+  188: "Comma",
+  189: "Minus",
+  190: "Period",
+  191: "Slash",
+  192: "Backquote",
+  219: "BracketLeft",
+  220: "Backslash",
+  221: "BracketRight",
+  222: "Quote",
+}
+
+document.addEventListener('keydown', e => {
+  CODEMAP[e.keyCode] = e.code;
+});
+
+let KEYMAP = {
     // Left Stick
     87: "LS_UP",
     65: "LS_LEFT",
@@ -69,8 +136,8 @@ const KEYMAP = {
     // A B X Y
     76: "A",
     75: "B",
-    73: "X",
-    74: "Y",
+    69: "X",
+    81: "Y",
     // L & ZL
     49: "L",
     50: "ZL",
@@ -94,8 +161,8 @@ const RIGHT_STICK = [
 
 let INPUT_PACKET = {
     // Sticks
+    "LS_PRESS": false,
     "L_STICK": {
-        "PRESSED": false,
         "X_VALUE": 0,
         "Y_VALUE": 0,
         // Keyboard position calculation values
@@ -104,8 +171,8 @@ let INPUT_PACKET = {
         "LS_RIGHT": false,
         "LS_DOWN": false
     },
+    "RS_PRESS": false,
     "R_STICK": {
-        "PRESSED": false,
         "X_VALUE": 0,
         "Y_VALUE": 0,
         // Keyboard position calculation values
@@ -113,6 +180,10 @@ let INPUT_PACKET = {
         "RS_LEFT": false,
         "RS_RIGHT": false,
         "RS_DOWN": false
+    },
+    "MOUSE": {
+        "X_VALUE": 0,
+        "Y_VALUE": 0
     },
     // Dpad
     "DPAD_UP": false,
@@ -187,6 +258,61 @@ let PRO_CONTROLLER_DISPLAY = {
 }
 
 /**********************************************/
+/* Key Rebinding */
+/**********************************************/
+
+
+setInterval(function() {
+  Object.keys(KEYMAP).forEach(key => {
+    if(document.getElementById(KEYMAP[key]))
+    document.getElementById(KEYMAP[key]).innerHTML = CODEMAP[key];
+  });
+  window.localStorage.setItem('lmba', document.getElementById('left-mouse-button-action').value);
+  window.localStorage.setItem('rmba', document.getElementById('right-mouse-button-action').value);
+  window.localStorage.setItem('mmba', document.getElementById('middle-mouse-button-action').value);
+}, 200);
+
+if(window.localStorage.getItem('KEYMAP') != null) {
+  KEYMAP = JSON.parse(window.localStorage.getItem('KEYMAP'));
+}
+
+if(window.localStorage.getItem('lmba') != null) {
+  document.getElementById('left-mouse-button-action').value = window.localStorage.getItem('lmba');
+}
+
+if(window.localStorage.getItem('rmba') != null) {
+  document.getElementById('right-mouse-button-action').value = window.localStorage.getItem('rmba');
+}
+
+if(window.localStorage.getItem('mmba') != null) {
+  document.getElementById('middle-mouse-button-action').value = window.localStorage.getItem('mmba');
+}
+
+function rebind(button) {
+  let delKey;
+  Object.keys(KEYMAP).forEach(key => {
+    if(KEYMAP[key] == button) delKey = key;
+  });
+  if(delKey) {
+    delete KEYMAP[delKey];
+    function tempBind(e) {
+      let done = true;
+      Object.keys(KEYMAP).forEach(key => {
+        if(e.keyCode == key) {
+          alert('key already in use');
+          done = false;
+        }
+      });
+      if(done) KEYMAP[e.keyCode] = button;
+      else KEYMAP[delKey] = button;
+      window.localStorage.setItem('KEYMAP', JSON.stringify(KEYMAP));
+      document.removeEventListener('keydown', tempBind, false);
+    }
+    document.addEventListener('keydown', tempBind);
+  }
+}
+
+/**********************************************/
 /* Socket.IO Functionality */
 /**********************************************/
 
@@ -228,6 +354,88 @@ window.onload = function() {
     // measureTimeoutLatency.start(120, 60);
 }
 
+// Mouse listener
+
+let locked = false;
+
+document.addEventListener('keydown', e => {
+  console.log(e.keyCode);
+  locked = document.body == document.pointerLockElement;
+  if (locked) e.preventDefault();
+  if(e.key == '/') {
+    if(!locked) document.body.requestPointerLock();
+    else document.exitPointerLock();
+    locked = document.body == document.pointerLockElement;
+  }
+});
+
+let mouseData = [];
+function mouseEventHandler(e) {
+  locked = document.body == document.pointerLockElement;
+  // console.log(locked, e);
+  if (locked) {
+    let dtp = {
+      x: e.movementX,
+      y: e.movementY,
+      d: performance.now()
+    };
+    console.log("DTP", dtp);
+    mouseData.push(dtp);
+  } else if (mouseData.length > 0){
+    mouseData = [];
+  }
+};
+
+document.onmousemove = mouseEventHandler;
+
+// Smooth over this amount of ms
+let mouseTimingThreshold = 50;
+let mouseCounthreshold = 20;
+
+//  Returns valid, smoothed mouse data.
+function gmp() {
+  console.log(mouseData.length);
+  while (mouseData.length > 0 && (mouseData[0].d < performance.now() - mouseTimingThreshold || mouseData.length > mouseCounthreshold)) {
+    mouseData.shift();
+  }
+  if (mouseData.length > 0) {
+    let my = 0;
+    let mx = 0;
+    mouseData.forEach((d) => {
+      mx += d.x;
+      my += d.y;
+      mx = clamp(mx, -500, 500);
+      my = clamp(my, -500, 500);
+    });
+    return {
+      x: mx / mouseData.length,
+      y: my / mouseData.length
+    };
+  }
+    return {
+    x: 0,
+    y: 0,
+    i: "NO_MOUSE_DATA"
+  };
+}
+
+document.addEventListener('mousedown', e => {
+  if(locked){
+    if(e.which == 1) INPUT_PACKET[document.getElementById('left-mouse-button-action').value] = true;
+    if(e.which == 3) INPUT_PACKET[document.getElementById('right-mouse-button-action').value] = true;
+    if(e.which == 2) INPUT_PACKET[document.getElementById('middle-mouse-button-action').value] = true;
+  }
+});
+
+document.addEventListener('mouseup', e => {
+  if(locked) {
+    if(e.which == 1) INPUT_PACKET[document.getElementById('left-mouse-button-action').value] = false;
+    if(e.which == 3) INPUT_PACKET[document.getElementById('right-mouse-button-action').value] = false;
+    if(e.which == 2) INPUT_PACKET[document.getElementById('middle-mouse-button-action').value] = false;
+  }
+});
+
+
 // Keydown listener
 function globalKeydownHandler(evt) {
     if (INPUT_DEVICE !== InputDevice.KEYBOARD) {
@@ -236,9 +444,9 @@ function globalKeydownHandler(evt) {
 
     evt = evt || window.event;
     // Prevent scrolling on keypress
-    if([32, 37, 38, 39, 40].indexOf(evt.keyCode) > -1) {
-        evt.preventDefault();
-    }
+    // if([9, 32, 37, 38, 39, 40].indexOf(evt.kseyCode) > -1) {
+    //     evt.preventDefault();
+    // }
 
     if (Object.keys(KEYMAP).indexOf(JSON.stringify(evt.keyCode)) > -1) {
         control = KEYMAP[evt.keyCode];
@@ -260,7 +468,7 @@ function globalKeyupHandler(evt) {
     }
 
     evt = evt || window.event;
-    
+
     if (Object.keys(KEYMAP).indexOf(JSON.stringify(evt.keyCode)) > -1) {
         control = KEYMAP[evt.keyCode];
         if (LEFT_STICK.indexOf(control) > -1) {
@@ -322,7 +530,7 @@ function displayOtherSessions() {
         HTML_CONTROLLER_SESSIONS.classList.add("hidden");
         return;
     // If the only controller session is the current one
-    } else if (controllerIndices.length === 1 && 
+    } else if (controllerIndices.length === 1 &&
             Number(controllerIndices[0]) === NXBT_CONTROLLER_INDEX) {
         HTML_CONTROLLER_SESSIONS.classList.add("hidden");
         return;
@@ -470,7 +678,7 @@ function changeInput(evt) {
 
 function changeFrequency(evt) {
     let newFrequency = evt.target.value;
-    
+
     if (newFrequency === "RAF") {
         useRAF = true;
     } else {
@@ -507,11 +715,11 @@ function updateGamepadInput() {
     let gp = navigator.getGamepads()[CONTROLLER_INDEX];
     INPUT_PACKET["L_STICK"]["X_VALUE"] = gp.axes[0] * 100;
     INPUT_PACKET["L_STICK"]["Y_VALUE"] = gp.axes[1] * -100;
-    INPUT_PACKET["L_STICK"]["PRESSED"] = gp["buttons"][10]["pressed"];
+    INPUT_PACKET["LS_PRESS"] = gp["buttons"][10]["pressed"];
 
     INPUT_PACKET["R_STICK"]["X_VALUE"] = gp.axes[2] * 100;
     INPUT_PACKET["R_STICK"]["Y_VALUE"] = gp.axes[3] * -100;
-    INPUT_PACKET["R_STICK"]["PRESSED"] = gp["buttons"][11]["pressed"];
+    INPUT_PACKET["R_PRESS"] = gp["buttons"][11]["pressed"];
 
     INPUT_PACKET["DPAD_UP"] = gp["buttons"][12]["pressed"];
     INPUT_PACKET["DPAD_DOWN"] = gp["buttons"][13]["pressed"];
@@ -567,6 +775,21 @@ function updateGamepadDisplay() {
     }
 }
 
+// utility method because javascript is annoying
+function clamp(i, min, max) {
+  return Math.min(max, Math.max(i, min));
+}
+
+// Stick presses have been moved out of their stick objects as keyboard/mouse input for them wouldn't work. This fixes the data before sending it back to the server.
+function fixStickPress(data_old) {
+  let data = JSON.parse(JSON.stringify(data_old));
+  data["L_STICK"]["PRESSED"] = data["LS_PRESS"];
+  data["R_STICK"]["PRESSED"] = data["RS_PRESS"];
+  delete data["LS_PRESS"];
+  delete data["RS_PRESS"];
+  return data;
+}
+
 let timeOld = false;
 let frequency = (1/120) * 1000;
 let useRAF = true;
@@ -607,8 +830,13 @@ function eventLoop() {
         if (INPUT_PACKET["R_STICK"]["RS_DOWN"]) {
             rYValue -= 100
         }
-        INPUT_PACKET["R_STICK"]["X_VALUE"] = rXValue
-        INPUT_PACKET["R_STICK"]["Y_VALUE"] = rYValue
+        let gm = gmp();
+        INPUT_PACKET["MOUSE"]["X_VALUE"] = gm.x;
+        INPUT_PACKET["MOUSE"]["Y_VALUE"] = gm.y;
+        //console.log(gm);
+        //INPUT_PACKET["R_STICK"]["X_VALUE"] = !locked ? rXValue : clamp(gm.x * 10, -100, 100);
+        //INPUT_PACKET["R_STICK"]["Y_VALUE"] = !locked ? rYValue : clamp(gm.y * -10, -100, 100);
+        // console.log("PACKET_RS", INPUT_PACKET["R_STICK"]["X_VALUE"], INPUT_PACKET["R_STICK"]["Y_VALUE"])
     } else if (INPUT_DEVICE == InputDevice.GAMEPAD) {
         updateGamepadInput();
     }
@@ -617,7 +845,8 @@ function eventLoop() {
     // We can do this since NXBT will hold the previously sent value
     // until we send it a new one.
     if (JSON.stringify(INPUT_PACKET) !== JSON.stringify(INPUT_PACKET_OLD)) {
-        socket.emit('input', JSON.stringify([NXBT_CONTROLLER_INDEX, INPUT_PACKET]));
+      console.log(INPUT_PACKET);
+      socket.emit('input', JSON.stringify([NXBT_CONTROLLER_INDEX, fixStickPress(INPUT_PACKET)]));
         INPUT_PACKET_OLD = JSON.parse(JSON.stringify(INPUT_PACKET));
     }
 
@@ -632,7 +861,7 @@ function eventLoop() {
         timeNew = performance.now();
         delta = timeNew - timeOld;
         diff = delta - frequency;
-    
+
         if (diff > 0) {
             setTimeout(eventLoop, frequency - diff);
         } else {
@@ -695,6 +924,6 @@ const measureTimeoutLatency = {
                 setTimeout(function(){context.loop(context);}, context.frequency);
             }
             context.timeOld = timeNew;
-        } 
+        }
     }
 }

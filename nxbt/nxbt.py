@@ -46,6 +46,10 @@ DIRECT_INPUT_PACKET = {
         "RS_RIGHT": False,
         "RS_DOWN": False
     },
+    "MOUSE": {
+        "X_VALUE": 0,
+        "Y_VALUE": 0
+    },
     # Dpad
     "DPAD_UP": False,
     "DPAD_LEFT": False,
